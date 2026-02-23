@@ -18,6 +18,14 @@ impl Vault {
         Self { root }
     }
 
+    pub fn init_dirs(&self) -> Result<()> {
+        fs::create_dir_all(self.root.join("objects/fm"))?;
+        fs::create_dir_all(self.root.join("objects/md"))?;
+        fs::create_dir_all(self.root.join("notes"))?;
+        fs::create_dir_all(self.root.join("tmp"))?;
+        Ok(())
+    }
+
     pub fn ingest(&self, note: &str, note_id: Option<&str>) -> Result<(String, String)> {
         // parse markdown files
         let (raw_fm, raw_md) = Self::split_frontmatter(note)?;
