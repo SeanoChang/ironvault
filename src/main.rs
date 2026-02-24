@@ -36,7 +36,7 @@ fn main() -> Result<()> {
         Read { id } => cli::read::run(&vault_dir, &id),
         Search { query, domain, limit } => cli::search::run(&vault_dir, &query, domain.as_deref(), limit),
         Ls { path } => cli::ls::run(&vault_dir, path.as_deref()),
-        About{ topic, limit } => todo!(),
+        About { topic, limit } => cli::about::run(&vault_dir, &topic, limit),
         Update => todo!(),
     }
 }
