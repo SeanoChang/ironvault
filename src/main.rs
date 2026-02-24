@@ -8,12 +8,13 @@ mod types;
 mod vault;
 
 use crate::cli::Commands::{
-    Init, 
-    Write, 
-    Peek, 
-    Search, 
-    Ls, 
-    About, 
+    Init,
+    Write,
+    Peek,
+    Read,
+    Search,
+    Ls,
+    About,
     Update
 };
 use cli::init::run;
@@ -31,7 +32,8 @@ fn main() -> Result<()> {
     match args.command {
         Init => run(&vault_dir),
         Write { paths, depth } => cli::write::run(&vault_dir, paths, depth),
-        Peek { id, meta } => todo!(),
+        Peek { id } => cli::peek::run(&vault_dir, &id),
+        Read { id } => cli::read::run(&vault_dir, &id),
         Search { query, domain, limit } => todo!(),
         Ls { path } => todo!(),
         About{ topic, limit } => todo!(),

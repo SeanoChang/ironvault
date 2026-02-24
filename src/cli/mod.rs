@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 pub mod init;
 pub mod write;
 pub mod peek;
+pub mod read;
 pub mod search;
 pub mod ls;
 pub mod about;
@@ -36,14 +37,16 @@ pub enum Commands {
         depth: Option<u64>,
     },
 
-    /// Peek at a note (full body or just frontmatter)
+    /// Note metadata from registry (cheap — no vault read)
     Peek {
-        /// Note ID 
+        /// Note ID
         id: String,
+    },
 
-        /// Show only frontmatter
-        #[arg(long)]
-        meta: bool,
+    /// Full note content from vault CAS (frontmatter + body)
+    Read {
+        /// Note ID
+        id: String,
     },
 
     /// FTS5 ranked search
