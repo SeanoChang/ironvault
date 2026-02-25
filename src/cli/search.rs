@@ -2,11 +2,28 @@ use anyhow::Result;
 use std::path::Path;
 
 use crate::db;
-use crate::registry::search;
+use crate::registry::search::{self, SearchFilters};
 
-pub fn run(vault_dir: &Path, query: &str, domain: Option<&str>, tags: &[String], limit: usize) -> Result<()> {
+pub fn run(
+    vault_dir: &Path,
+    query: &str,
+    domain: Option<&str>,
+    kind: Option<&str>,
+    intent: Option<&str>,
+    tags: &[String],
+    limit: usize,
+) -> Result<()> {
     let conn = db::open_registry(vault_dir)?;
-    let hits = search::search(&conn, query, domain, tags, limit)?;
+
+    let filters = SearchFilters {
+        domain,
+        kind,
+        intent,
+        tags,
+        limit,
+    };
+
+    let hits = search::search(&conn, query, &filters)?;
 
     let results: Vec<serde_json::Value> = hits.iter().map(|h| {
         serde_json::json!({

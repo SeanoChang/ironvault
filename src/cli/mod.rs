@@ -78,12 +78,20 @@ pub enum Commands {
     /// and body (1x). Returns ranked results with match snippets.
     /// Supports FTS5 syntax: "exact phrase", OR, NOT, prefix*, column:term.
     Search {
-        /// Search query (FTS5 syntax). Optional if --tag is provided.
+        /// Search query (FTS5 syntax). Optional if filters are provided.
         query: Option<String>,
 
-        /// Filter by domain (e.g. systems, security, finance)
+        /// Filter by domain
         #[arg(long)]
         domain: Option<String>,
+
+        /// Filter by kind (spec, decision, runbook, report, reference, incident, experiment, dataset)
+        #[arg(long)]
+        kind: Option<String>,
+
+        /// Filter by intent (build, debug, operate, design, research, evaluate, decide)
+        #[arg(long)]
+        intent: Option<String>,
 
         /// Filter by tag (AND logic). Accepts multiple: --tag cas vault
         #[arg(long, num_args = 1..)]
