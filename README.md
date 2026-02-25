@@ -58,7 +58,8 @@ nark read <note-id>
 
 | Command | What it does | Cost |
 |---|---|---|
-| `nark search <query> [--tag ...] [--domain ...]` | FTS5 ranked search, filterable by tags and domain | Cheap — registry only |
+| `nark search <query> [--domain] [--kind] [--intent] [--tag]` | FTS5 ranked search, filterable by any enum + tags | Cheap — registry only |
+| `nark stats` | Vault overview — counts, distributions, recent notes | Cheap — registry only |
 | `nark ls [path] [--tags]` | Browse domain/intent/kind tree | Cheap — registry only |
 | `nark about <topic>` | Search + body previews in one call | Medium — registry + vault reads |
 | `nark peek <id>` | Note metadata (title, domain, tags, etc.) | Cheap — registry only |
@@ -95,6 +96,7 @@ kind: "spec"
 trust: "verified"
 status: "active"
 tags: ["cas", "storage", "blake3"]
+aliases: ["CAS", "content-addressed store"]
 ---
 # CAS Write Discipline
 
@@ -110,8 +112,10 @@ Content goes here...
 | `kind` | What it is | spec, decision, runbook, report, reference, incident, experiment, dataset |
 | `trust` | Confidence level | hypothesis, reviewed, verified |
 | `status` | Lifecycle state | active, deprecated, retracted, draft |
+| `tags` | Free-form labels | Any lowercase alphanumeric + hyphens |
+| `aliases` | Search synonyms (3x FTS5 weight) | Free-form strings, optional |
 
-Intent, kind, trust, and status are enforced enums — invalid values are rejected at parse time.
+Domain, intent, kind, trust, and status are enforced enums — invalid values are rejected at parse time. Tags and aliases are optional (default to `[]`).
 
 ## Architecture
 
