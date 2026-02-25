@@ -127,6 +127,17 @@ impl Vault {
         Ok((note_id, version_id, prev_version_id))
     }
 
+    pub fn remove_object(&self, folder: &str, hash: &str, ext: &str) -> Result<()> {
+        let path = self.root
+            .join(folder)
+            .join(&hash[0..2])
+            .join(format!("{}.{}", hash, ext));
+        if path.exists() {
+            fs::remove_file(&path)?;
+        }
+        Ok(())
+    }
+
     pub fn read_object(&self, folder: &str, hash: &str, ext: &str) -> Result<String> {
         let path = self.root
             .join(folder)

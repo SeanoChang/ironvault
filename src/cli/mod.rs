@@ -8,6 +8,7 @@ pub mod search;
 pub mod ls;
 pub mod about;
 pub mod update;
+pub mod delete;
 
 #[derive(Parser)]
 #[command(
@@ -106,6 +107,25 @@ pub enum Commands {
         /// Number of notes to return
         #[arg(long, default_value = "3")]
         limit: usize,
+    },
+
+    /// Delete notes from the vault
+    ///
+    /// Default: soft delete (sets status = 'retracted'). Note disappears from
+    /// browse/search but all data survives — reversible via re-ingest.
+    /// -f: hard delete (removes registry rows, vault objects become orphans).
+    /// -rf: full purge (removes registry rows + vault CAS objects).
+    Delete {
+        /// Note IDs to delete
+        ids: Vec<String>,
+
+        /// Hard delete — remove all registry rows
+        #[arg(short, long)]
+        force: bool,
+
+        /// Recursive — also remove vault CAS objects (requires -f)
+        #[arg(short, long, requires = "force")]
+        recursive: bool,
     },
 
     /// Pull latest code and rebuild the binary
