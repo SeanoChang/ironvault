@@ -52,9 +52,23 @@ pub fn run() -> Result<()> {
     // Atomic replace
     fs::rename(&tmp_path, &binary_path)?;
 
+    // Verify the new binary reports its version
+    let verify = Command::new(&binary_path)
+        .args(["--version"])
+        .output();
+
+    let new_version = match verify {
+        Ok(v) if v.status.success() => {
+            String::from_utf8_lossy(&v.stdout).trim().to_string()
+        }
+        _ => "unknown".to_string(),
+    };
+
     let out = serde_json::json!({
         "status": "ok",
-        "version": tag,
+        "release": tag,
+        "installed_version": new_version,
+        "previous_version": format!("nark {}", env!("CARGO_PKG_VERSION")),
         "target": target,
         "path": binary_path.display().to_string(),
     });
