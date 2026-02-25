@@ -16,6 +16,7 @@ use crate::cli::Commands::{
     Ls,
     About,
     Delete,
+    Reset,
     Update
 };
 use cli::init::run;
@@ -39,6 +40,7 @@ fn main() -> Result<()> {
         Ls { path } => cli::ls::run(&vault_dir, path.as_deref()),
         About { topic, limit } => cli::about::run(&vault_dir, &topic, limit),
         Delete { ids, force, recursive } => cli::delete::run(&vault_dir, ids, force, recursive),
+        Reset { confirm } => cli::reset::run(&vault_dir, confirm),
         Update => cli::update::run(),
     }
 }

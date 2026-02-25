@@ -9,6 +9,7 @@ pub mod ls;
 pub mod about;
 pub mod update;
 pub mod delete;
+pub mod reset;
 
 #[derive(Parser)]
 #[command(
@@ -126,6 +127,17 @@ pub enum Commands {
         /// Recursive — also remove vault CAS objects (requires -f)
         #[arg(short, long, requires = "force")]
         recursive: bool,
+    },
+
+    /// Reset the registry database
+    ///
+    /// Deletes registry.db and recreates it with fresh schema + seed data.
+    /// Vault CAS objects are untouched — re-ingest with `nark write` after reset.
+    /// Requires --confirm to prevent accidental data loss.
+    Reset {
+        /// Actually perform the reset (without this, shows a dry-run summary)
+        #[arg(long)]
+        confirm: bool,
     },
 
     /// Pull latest code and rebuild the binary
