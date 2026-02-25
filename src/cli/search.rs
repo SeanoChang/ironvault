@@ -4,9 +4,9 @@ use std::path::Path;
 use crate::db;
 use crate::registry::search;
 
-pub fn run(vault_dir: &Path, query: &str, domain: Option<&str>, limit: usize) -> Result<()> {
+pub fn run(vault_dir: &Path, query: &str, domain: Option<&str>, tags: &[String], limit: usize) -> Result<()> {
     let conn = db::open_registry(vault_dir)?;
-    let hits = search::search(&conn, query, domain, limit)?;
+    let hits = search::search(&conn, query, domain, tags, limit)?;
 
     let results: Vec<serde_json::Value> = hits.iter().map(|h| {
         serde_json::json!({

@@ -9,7 +9,7 @@ pub fn run(vault_dir: &Path, topic: &str, limit: usize) -> Result<()> {
     let conn = db::open_registry(vault_dir)?;
     let vault = Vault::new(vault_dir.to_path_buf());
 
-    let hits = search::search(&conn, topic, None, limit)?;
+    let hits = search::search(&conn, topic, None, &[], limit)?;
 
     let mut results: Vec<serde_json::Value> = Vec::new();
     for hit in &hits {

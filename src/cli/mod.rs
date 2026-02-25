@@ -10,6 +10,7 @@ pub mod about;
 pub mod update;
 pub mod delete;
 pub mod reset;
+pub mod tag;
 
 #[derive(Parser)]
 #[command(
@@ -77,11 +78,16 @@ pub enum Commands {
     /// and body (1x). Returns ranked results with match snippets.
     /// Supports FTS5 syntax: "exact phrase", OR, NOT, prefix*, column:term.
     Search {
-        /// Search query (FTS5 syntax)
-        query: String,
+        /// Search query (FTS5 syntax). Optional if --tag is provided.
+        query: Option<String>,
 
         /// Filter by domain (e.g. systems, security, finance)
+        #[arg(long)]
         domain: Option<String>,
+
+        /// Filter by tag (AND logic). Accepts multiple: --tag cas vault
+        #[arg(long, num_args = 1..)]
+        tag: Vec<String>,
 
         /// Max results to return
         #[arg(long, default_value = "10")]
@@ -95,6 +101,10 @@ pub enum Commands {
     Ls {
         /// Tree path, e.g. "systems", "systems/build", "systems/build/spec"
         path: Option<String>,
+
+        /// Include tags for each note (leaf level only)
+        #[arg(long)]
+        tags: bool,
     },
 
     /// Quick research — search + read previews in one call
@@ -127,6 +137,26 @@ pub enum Commands {
         /// Recursive — also remove vault CAS objects (requires -f)
         #[arg(short, long, requires = "force")]
         recursive: bool,
+    },
+
+    /// Add, remove, list, or find tags on notes
+    ///
+    /// Mutate: nark tag <id> [<id>...] +add -remove
+    /// Read:   nark tag <id> (no modifiers = show tags)
+    /// List:   nark tag --list
+    /// Find:   nark tag --find <tag> [--find <tag>...]
+    Tag {
+        /// Note IDs and +tag/-tag modifiers
+        #[arg(allow_hyphen_values = true)]
+        args: Vec<String>,
+
+        /// List all tags with usage counts
+        #[arg(long)]
+        list: bool,
+
+        /// Find notes by tag (AND logic). Accepts multiple: --find cas vault
+        #[arg(long, num_args = 1..)]
+        find: Vec<String>,
     },
 
     /// Reset the registry database

@@ -4,9 +4,9 @@ use std::path::Path;
 use crate::db;
 use crate::registry::browse::{self, BrowseResult};
 
-pub fn run(vault_dir: &Path, path: Option<&str>) -> Result<()> {
+pub fn run(vault_dir: &Path, path: Option<&str>, include_tags: bool) -> Result<()> {
     let conn = db::open_registry(vault_dir)?;
-    let result = browse::browse(&conn, path)?;
+    let result = browse::browse(&conn, path, include_tags)?;
 
     let out = match result {
         BrowseResult::Groups { level, items } => {
@@ -21,12 +21,16 @@ pub fn run(vault_dir: &Path, path: Option<&str>) -> Result<()> {
         }
         BrowseResult::Notes(notes) => {
             let results: Vec<serde_json::Value> = notes.iter().map(|n| {
-                serde_json::json!({
+                let mut obj = serde_json::json!({
                     "id": n.note_id,
                     "title": n.title,
                     "trust": n.trust,
                     "updated_at": n.updated_at,
-                })
+                });
+                if let Some(tags) = &n.tags {
+                    obj["tags"] = serde_json::json!(tags);
+                }
+                obj
             }).collect();
             serde_json::json!({
                 "level": "note",
