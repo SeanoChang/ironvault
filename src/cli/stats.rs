@@ -8,6 +8,10 @@ pub fn run(vault_dir: &Path) -> Result<()> {
     let conn = db::open_registry(vault_dir)?;
     let s = stats::overview(&conn)?;
 
+    let most_accessed = s.access.most_accessed.as_ref().map(|m| {
+        serde_json::json!({ "title": m.title, "count": m.count })
+    });
+
     let out = serde_json::json!({
         "total_notes": s.total_notes,
         "total_versions": s.total_versions,
@@ -30,6 +34,15 @@ pub fn run(vault_dir: &Path) -> Result<()> {
                 "updated_at": n.updated_at,
             })
         }).collect::<Vec<_>>(),
+        "access": {
+            "total_reads": s.access.total_reads,
+            "most_accessed": most_accessed,
+            "never_read": s.access.never_read,
+        },
+        "importance": {
+            "explicit": s.importance.explicit_count,
+            "avg": (s.importance.avg * 10.0).round() / 10.0,
+        },
     });
 
     println!("{}", serde_json::to_string_pretty(&out)?);

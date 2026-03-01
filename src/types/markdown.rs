@@ -129,6 +129,9 @@ pub struct FrontmatterLink {
     pub rel: String,
 }
 
+fn default_importance() -> u8 { 5 }
+fn is_default_importance(v: &u8) -> bool { *v == 5 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Frontmatter {
     pub title: String,
@@ -143,4 +146,13 @@ pub struct Frontmatter {
     pub aliases: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub links: Vec<FrontmatterLink>,
+    #[serde(default = "default_importance", skip_serializing_if = "is_default_importance")]
+    pub importance: u8,
+}
+
+impl Frontmatter {
+    /// Importance clamped to [0, 10]. Invalid or missing defaults to 5.
+    pub fn importance_clamped(&self) -> u8 {
+        self.importance.min(10)
+    }
 }

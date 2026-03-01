@@ -17,6 +17,22 @@ pub struct RecentNote {
     pub updated_at: String,
 }
 
+pub struct MostAccessed {
+    pub title: String,
+    pub count: i64,
+}
+
+pub struct AccessStats {
+    pub total_reads: i64,
+    pub most_accessed: Option<MostAccessed>,
+    pub never_read: i64,
+}
+
+pub struct ImportanceStats {
+    pub explicit_count: i64,
+    pub avg: f64,
+}
+
 pub struct VaultStats {
     pub total_notes: i64,
     pub total_versions: i64,
@@ -24,6 +40,8 @@ pub struct VaultStats {
     pub by_kind: Vec<FacetCount>,
     pub by_trust: Vec<FacetCount>,
     pub recent: Vec<RecentNote>,
+    pub access: AccessStats,
+    pub importance: ImportanceStats,
 }
 
 pub fn overview(conn: &Connection) -> Result<VaultStats> {
@@ -40,6 +58,8 @@ pub fn overview(conn: &Connection) -> Result<VaultStats> {
     let by_kind = facet_query(conn, "kind")?;
     let by_trust = facet_query(conn, "trust")?;
     let recent = recent_query(conn)?;
+    let access = access_stats(conn)?;
+    let importance = importance_stats(conn)?;
 
     Ok(VaultStats {
         total_notes,
@@ -48,6 +68,8 @@ pub fn overview(conn: &Connection) -> Result<VaultStats> {
         by_kind,
         by_trust,
         recent,
+        access,
+        importance,
     })
 }
 
@@ -93,4 +115,55 @@ fn recent_query(conn: &Connection) -> Result<Vec<RecentNote>> {
         .filter_map(|r| r.ok())
         .collect();
     Ok(rows)
+}
+
+fn access_stats(conn: &Connection) -> Result<AccessStats> {
+    let total_reads: i64 = conn.query_row(
+        &format!("SELECT COALESCE(SUM(access_count), 0) FROM current_notes WHERE {}", FILTER),
+        [], |r| r.get(0),
+    )?;
+
+    let most_accessed = conn.query_row(
+        &format!(
+            "SELECT title, access_count FROM current_notes \
+             WHERE {} AND access_count > 0 \
+             ORDER BY access_count DESC LIMIT 1",
+            FILTER
+        ),
+        [],
+        |row| {
+            Ok(MostAccessed {
+                title: row.get::<_, Option<String>>(0)?.unwrap_or_default(),
+                count: row.get(1)?,
+            })
+        },
+    ).ok();
+
+    let never_read: i64 = conn.query_row(
+        &format!("SELECT COUNT(*) FROM current_notes WHERE {} AND access_count = 0", FILTER),
+        [], |r| r.get(0),
+    )?;
+
+    Ok(AccessStats {
+        total_reads,
+        most_accessed,
+        never_read,
+    })
+}
+
+fn importance_stats(conn: &Connection) -> Result<ImportanceStats> {
+    let explicit_count: i64 = conn.query_row(
+        &format!("SELECT COUNT(*) FROM current_notes WHERE {} AND importance != 5", FILTER),
+        [], |r| r.get(0),
+    )?;
+
+    let avg: f64 = conn.query_row(
+        &format!("SELECT COALESCE(AVG(importance), 5.0) FROM current_notes WHERE {}", FILTER),
+        [], |r| r.get(0),
+    )?;
+
+    Ok(ImportanceStats {
+        explicit_count,
+        avg,
+    })
 }

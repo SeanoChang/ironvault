@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::path::Path;
 
 use crate::db;
-use crate::registry::resolve;
+use crate::registry::{access, resolve};
 use crate::vault::fs::Vault;
 
 pub fn run(vault_dir: &Path, id: &str) -> Result<()> {
@@ -25,5 +25,8 @@ pub fn run(vault_dir: &Path, id: &str) -> Result<()> {
     });
 
     println!("{}", serde_json::to_string_pretty(&out)?);
+
+    // Bump access after successful read
+    access::bump_access(&conn, &meta.note_id)?;
     Ok(())
 }

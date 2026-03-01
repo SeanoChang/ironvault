@@ -1,13 +1,15 @@
 use anyhow::Result;
 use std::path::Path;
 
+use crate::config;
 use crate::db;
-use crate::registry::{resolve, search};
+use crate::registry::{access, resolve, search};
 use crate::vault::fs::Vault;
 
 pub fn run(vault_dir: &Path, topic: &str, limit: usize) -> Result<()> {
     let conn = db::open_registry(vault_dir)?;
     let vault = Vault::new(vault_dir.to_path_buf());
+    let cfg = config::load(vault_dir)?;
 
     let filters = search::SearchFilters {
         domain: None,
@@ -16,7 +18,7 @@ pub fn run(vault_dir: &Path, topic: &str, limit: usize) -> Result<()> {
         tags: &[],
         limit,
     };
-    let hits = search::search(&conn, topic, &filters)?;
+    let hits = search::search(&conn, topic, &filters, &cfg.search)?;
 
     let mut results: Vec<serde_json::Value> = Vec::new();
     for hit in &hits {
@@ -31,6 +33,9 @@ pub fn run(vault_dir: &Path, topic: &str, limit: usize) -> Result<()> {
             "kind": hit.kind,
             "body_preview": preview,
         }));
+
+        // Bump access — agent read this note's full content
+        access::bump_access(&conn, &hit.note_id)?;
     }
 
     let out = serde_json::json!({

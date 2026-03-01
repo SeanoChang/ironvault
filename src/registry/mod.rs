@@ -1,3 +1,4 @@
+pub mod access;
 pub mod write;
 pub mod resolve;
 pub mod search;

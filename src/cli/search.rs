@@ -1,6 +1,7 @@
 use anyhow::Result;
 use std::path::Path;
 
+use crate::config;
 use crate::db;
 use crate::registry::search::{self, SearchFilters};
 
@@ -14,6 +15,7 @@ pub fn run(
     limit: usize,
 ) -> Result<()> {
     let conn = db::open_registry(vault_dir)?;
+    let cfg = config::load(vault_dir)?;
 
     let filters = SearchFilters {
         domain,
@@ -23,7 +25,7 @@ pub fn run(
         limit,
     };
 
-    let hits = search::search(&conn, query, &filters)?;
+    let hits = search::search(&conn, query, &filters, &cfg.search)?;
 
     let results: Vec<serde_json::Value> = hits.iter().map(|h| {
         serde_json::json!({
