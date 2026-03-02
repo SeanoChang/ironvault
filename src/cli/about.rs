@@ -18,7 +18,7 @@ pub fn run(vault_dir: &Path, topic: &str, limit: usize) -> Result<()> {
         tags: &[],
         limit,
     };
-    let hits = search::search(&conn, topic, &filters, &cfg.search)?;
+    let hits = search::search(&conn, topic, &filters, &cfg.search, None, search::SearchMode::Normal)?;
 
     let mut results: Vec<serde_json::Value> = Vec::new();
     for hit in &hits {

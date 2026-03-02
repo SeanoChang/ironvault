@@ -10,7 +10,7 @@ pub const DEFAULT_CLIENT_ID: &str = "cli_default";
 
 static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
 
-static MIGRATIONS: LazyLock<Migrations<'static>> = LazyLock::new(|| {
+pub(crate) static MIGRATIONS: LazyLock<Migrations<'static>> = LazyLock::new(|| {
     Migrations::from_directory(&MIGRATIONS_DIR).unwrap()
 });
 
@@ -30,7 +30,7 @@ pub fn open_registry(vault_dir: &Path) -> Result<Connection> {
     Ok(conn)
 }
 
-fn seed_defaults(conn: &Connection) -> Result<()> {
+pub(crate) fn seed_defaults(conn: &Connection) -> Result<()> {
     let now = chrono::Utc::now().to_rfc3339();
 
     conn.execute(

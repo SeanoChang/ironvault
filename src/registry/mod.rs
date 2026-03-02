@@ -1,9 +1,10 @@
 pub mod access;
-pub mod write;
-pub mod resolve;
-pub mod search;
 pub mod browse;
 pub mod delete;
-pub mod tags;
-pub mod stats;
 pub mod edges;
+pub mod embeddings;
+pub mod resolve;
+pub mod search;
+pub mod stats;
+pub mod tags;
+pub mod write;

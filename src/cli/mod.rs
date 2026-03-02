@@ -1,19 +1,20 @@
 use clap::{Parser, Subcommand};
 
-pub mod init;
-pub mod write;
-pub mod peek;
-pub mod read;
-pub mod search;
-pub mod ls;
 pub mod about;
-pub mod update;
 pub mod delete;
-pub mod reset;
-pub mod stats;
-pub mod tag;
+pub mod embed;
+pub mod init;
 pub mod link;
 pub mod links;
+pub mod ls;
+pub mod peek;
+pub mod read;
+pub mod reset;
+pub mod search;
+pub mod stats;
+pub mod tag;
+pub mod update;
+pub mod write;
 
 #[derive(Parser)]
 #[command(
@@ -103,6 +104,16 @@ pub enum Commands {
         /// Max results to return
         #[arg(long, default_value = "10")]
         limit: usize,
+
+        /// BM25-only mode: skip cosine ranking and graph expansion.
+        /// Useful for debugging recall or exact-term searches.
+        #[arg(long, conflicts_with = "semantic")]
+        bm25: bool,
+
+        /// Semantic mode: bypass BM25 filter, run cosine against all notes.
+        /// Requires embeddings (nark embed init + build).
+        #[arg(long, conflicts_with = "bm25")]
+        semantic: bool,
     },
 
     /// Browse the knowledge tree: domain → intent → kind → notes
@@ -208,6 +219,23 @@ pub enum Commands {
         confirm: bool,
     },
 
+    /// Manage local embeddings (ONNX + bge-base-en-v1.5)
+    ///
+    /// Subcommands: init (download runtime + model), build (backfill embeddings).
+    /// Embedding is optional — search falls back to BM25 if not initialized.
+    Embed {
+        #[command(subcommand)]
+        action: EmbedAction,
+    },
+
     /// Pull latest code and rebuild the binary
     Update,
+}
+
+#[derive(Subcommand)]
+pub enum EmbedAction {
+    /// Download ONNX Runtime and bge-base-en-v1.5 model
+    Init,
+    /// Backfill embeddings for all notes that don't have one
+    Build,
 }

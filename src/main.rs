@@ -4,6 +4,7 @@ use clap::Parser;
 mod cli;
 mod config;
 mod db;
+mod embed;
 mod registry;
 mod types;
 mod vault;
@@ -17,6 +18,7 @@ use crate::cli::Commands::{
     Ls,
     About,
     Delete,
+    Embed,
     Tag,
     Link,
     Links,
@@ -41,7 +43,7 @@ fn main() -> Result<()> {
         Write { paths, depth } => cli::write::run(&vault_dir, paths, depth),
         Peek { id } => cli::peek::run(&vault_dir, &id),
         Read { id } => cli::read::run(&vault_dir, &id),
-        Search { query, domain, kind, intent, tag, limit } => cli::search::run(&vault_dir, query.as_deref().unwrap_or(""), domain.as_deref(), kind.as_deref(), intent.as_deref(), &tag, limit),
+        Search { query, domain, kind, intent, tag, limit, bm25, semantic } => cli::search::run(&vault_dir, query.as_deref().unwrap_or(""), domain.as_deref(), kind.as_deref(), intent.as_deref(), &tag, limit, bm25, semantic),
         Ls { path, tags } => cli::ls::run(&vault_dir, path.as_deref(), tags),
         About { topic, limit } => cli::about::run(&vault_dir, &topic, limit),
         Delete { ids, force, recursive } => cli::delete::run(&vault_dir, ids, force, recursive),
@@ -49,6 +51,10 @@ fn main() -> Result<()> {
         Link { sources, target, rel } => cli::link::run(&vault_dir, sources, &target, &rel),
         Links { id } => cli::links::run(&vault_dir, &id),
         Stats => cli::stats::run(&vault_dir),
+        Embed { action } => match action {
+            cli::EmbedAction::Init => cli::embed::run_init(&vault_dir),
+            cli::EmbedAction::Build => cli::embed::run_build(&vault_dir),
+        },
         Reset { confirm } => cli::reset::run(&vault_dir, confirm),
         Update => cli::update::run(),
     }

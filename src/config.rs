@@ -8,11 +8,25 @@ pub struct Config {
     pub search: SearchConfig,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct SearchConfig {
+    pub threshold: f64,
+    pub top_n: usize,
+    pub bm25: Bm25Config,
     pub weights: BlendWeights,
-    pub recency: RecencyConfig,
+    pub graph: GraphConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct Bm25Config {
+    pub top_k: usize,
+    pub weight_title: f64,
+    pub weight_body: f64,
+    pub weight_spine: f64,
+    pub weight_aliases: f64,
+    pub weight_keywords: f64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -20,14 +34,40 @@ pub struct SearchConfig {
 pub struct BlendWeights {
     pub cosine: f64,
     pub graph: f64,
-    pub importance: f64,
-    pub recency: f64,
+    pub activation: f64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
-pub struct RecencyConfig {
-    pub lambda: f64,
+pub struct GraphConfig {
+    pub decay: f64,
+    pub max_hops: usize,
+    pub respect_domain_filter: bool,
+}
+
+impl Default for SearchConfig {
+    fn default() -> Self {
+        Self {
+            threshold: 0.10,
+            top_n: 20,
+            bm25: Bm25Config::default(),
+            weights: BlendWeights::default(),
+            graph: GraphConfig::default(),
+        }
+    }
+}
+
+impl Default for Bm25Config {
+    fn default() -> Self {
+        Self {
+            top_k: 100,
+            weight_title: 5.0,
+            weight_body: 1.0,
+            weight_spine: 2.0,
+            weight_aliases: 3.0,
+            weight_keywords: 10.0,
+        }
+    }
 }
 
 impl Default for BlendWeights {
@@ -35,17 +75,30 @@ impl Default for BlendWeights {
         Self {
             cosine: 0.50,
             graph: 0.25,
-            importance: 0.15,
-            recency: 0.10,
+            activation: 0.25,
         }
     }
 }
 
-impl Default for RecencyConfig {
+impl Default for GraphConfig {
     fn default() -> Self {
         Self {
-            lambda: 0.05,
+            decay: 0.5,
+            max_hops: 1,
+            respect_domain_filter: false,
         }
+    }
+}
+
+impl Bm25Config {
+    /// Format BM25 column weights as the argument string for FTS5 bm25() function.
+    /// Column order: note_id (0, unindexed), title, body, spine, aliases, keywords.
+    pub fn fts5_weights_arg(&self) -> String {
+        format!(
+            "0.0, {}, {}, {}, {}, {}",
+            self.weight_title, self.weight_body, self.weight_spine,
+            self.weight_aliases, self.weight_keywords
+        )
     }
 }
 
