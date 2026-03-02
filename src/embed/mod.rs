@@ -123,8 +123,8 @@ fn l2_normalize(v: &[f32]) -> Vec<f32> {
 
 fn onnx_dylib_name() -> &'static str {
     if cfg!(target_os = "macos") {
-        "libonnxruntime.1.17.0.dylib"
+        "libonnxruntime.1.24.2.dylib"
     } else {
-        "libonnxruntime.so.1.17.0"
+        "libonnxruntime.so.1.24.2"
     }
 }

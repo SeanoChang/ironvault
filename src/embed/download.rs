@@ -8,7 +8,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use sha2::{Digest, Sha256};
 use tar::Archive;
 
-const ORT_VERSION: &str = "1.17.0";
+const ORT_VERSION: &str = "1.24.2";
 const MODEL_NAME: &str = "bge-base-en-v1.5";
 
 // ONNX Runtime download URLs by platform
@@ -25,22 +25,16 @@ fn ort_asset() -> Result<PlatformAsset> {
 
     match (os, arch) {
         ("macos", "aarch64") => Ok(PlatformAsset {
-            url: "https://github.com/microsoft/onnxruntime/releases/download/v1.17.0/onnxruntime-osx-arm64-1.17.0.tgz",
-            archive_prefix: "onnxruntime-osx-arm64-1.17.0",
-            dylib_name: "libonnxruntime.1.17.0.dylib",
-            sha256: Some("5a46c5518828e9a55ab77c7f0a72b8f12f6bbb43a2f822db24e3c8daed7bfeff"),
-        }),
-        ("macos", "x86_64") => Ok(PlatformAsset {
-            url: "https://github.com/microsoft/onnxruntime/releases/download/v1.17.0/onnxruntime-osx-x86_64-1.17.0.tgz",
-            archive_prefix: "onnxruntime-osx-x86_64-1.17.0",
-            dylib_name: "libonnxruntime.1.17.0.dylib",
-            sha256: Some("37b6a8efd5fad48277e0d6c29c8a01f9faefede8e4f0d5b28d9a9c6e59ea3239"),
+            url: "https://github.com/microsoft/onnxruntime/releases/download/v1.24.2/onnxruntime-osx-arm64-1.24.2.tgz",
+            archive_prefix: "onnxruntime-osx-arm64-1.24.2",
+            dylib_name: "libonnxruntime.1.24.2.dylib",
+            sha256: None, // TODO: pin after first verified download
         }),
         ("linux", "x86_64") => Ok(PlatformAsset {
-            url: "https://github.com/microsoft/onnxruntime/releases/download/v1.17.0/onnxruntime-linux-x64-1.17.0.tgz",
-            archive_prefix: "onnxruntime-linux-x64-1.17.0",
-            dylib_name: "libonnxruntime.so.1.17.0",
-            sha256: Some("c3feccdb30e25bab10aa39e5d6ff6e9c37a8e3ef8bdf5344a365bdd1ad81bfdc"),
+            url: "https://github.com/microsoft/onnxruntime/releases/download/v1.24.2/onnxruntime-linux-x64-1.24.2.tgz",
+            archive_prefix: "onnxruntime-linux-x64-1.24.2",
+            dylib_name: "libonnxruntime.so.1.24.2",
+            sha256: None, // TODO: pin after first verified download
         }),
         _ => bail!("unsupported platform: {os}-{arch}"),
     }
