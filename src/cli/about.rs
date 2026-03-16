@@ -1,21 +1,27 @@
 use anyhow::Result;
 use std::path::Path;
 
+use crate::cli::search::parse_temporal;
 use crate::config;
 use crate::db;
 use crate::registry::{access, resolve, search};
 use crate::vault::fs::Vault;
 
-pub fn run(vault_dir: &Path, topic: &str, limit: usize) -> Result<()> {
+pub fn run(vault_dir: &Path, topic: &str, limit: usize, since: Option<&str>, before: Option<&str>) -> Result<()> {
     let conn = db::open_registry(vault_dir)?;
     let vault = Vault::new(vault_dir.to_path_buf());
     let cfg = config::load(vault_dir)?;
+
+    let since_ts = since.map(parse_temporal).transpose()?;
+    let before_ts = before.map(parse_temporal).transpose()?;
 
     let filters = search::SearchFilters {
         domain: None,
         kind: None,
         intent: None,
         tags: &[],
+        since: since_ts.as_deref(),
+        before: before_ts.as_deref(),
         limit,
     };
     let hits = search::search(&conn, topic, &filters, &cfg.search, None, search::SearchMode::Normal)?;

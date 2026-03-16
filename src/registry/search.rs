@@ -28,6 +28,8 @@ pub struct SearchFilters<'a> {
     pub kind: Option<&'a str>,
     pub intent: Option<&'a str>,
     pub tags: &'a [String],
+    pub since: Option<&'a str>,
+    pub before: Option<&'a str>,
     pub limit: usize,
 }
 
@@ -90,7 +92,7 @@ pub fn search(
         || !filters.tags.is_empty();
 
     if !has_query && !has_filters {
-        bail!("search requires a query, --tag, --kind, --intent, --domain, or a combination");
+        bail!("search requires a query, --tag, --kind, --intent, --domain, or a combination (--since/--before are pre-filters and cannot be used alone)");
     }
 
     match mode {
@@ -630,6 +632,16 @@ fn append_column_filters(
         params.push(Box::new(i.to_string()));
         *pi += 1;
     }
+    if let Some(s) = filters.since {
+        sql.push_str(&format!("\n           AND cn.updated_at >= ?{}", *pi));
+        params.push(Box::new(s.to_string()));
+        *pi += 1;
+    }
+    if let Some(b) = filters.before {
+        sql.push_str(&format!("\n           AND cn.updated_at <= ?{}", *pi));
+        params.push(Box::new(b.to_string()));
+        *pi += 1;
+    }
 }
 
 fn tag_subquery(tags: &[String], start_pi: usize) -> (String, usize) {
@@ -753,6 +765,8 @@ mod tests {
             kind: None,
             intent: None,
             tags: &[],
+            since: None,
+            before: None,
             limit,
         }
     }
@@ -797,6 +811,8 @@ mod tests {
             kind: None,
             intent: None,
             tags: &[],
+            since: None,
+            before: None,
             limit: 10,
         };
 
@@ -1171,6 +1187,8 @@ mod tests {
             kind: Some("report"),
             intent: None,
             tags: &[],
+            since: None,
+            before: None,
             limit: 10,
         };
 
@@ -1359,5 +1377,164 @@ mod tests {
         let actual = custom.bm25.fts5_weights_arg();
         assert!(actual.contains("10"), "Custom title weight should appear");
         assert!(actual.contains("20"), "Custom keywords weight should appear");
+    }
+
+    // ================================================================
+    // Test 16: Temporal since filter excludes old notes
+    // ================================================================
+
+    /// Insert a note with a specific updated_at timestamp.
+    fn insert_note_at(
+        conn: &Connection,
+        note_id: &str,
+        title: &str,
+        domain: &str,
+        kind: &str,
+        body: &str,
+        activation_score: f64,
+        updated_at: &str,
+    ) {
+        let version_id = format!("v-{}", note_id);
+        let now = chrono::Utc::now().to_rfc3339();
+
+        conn.execute(
+            "INSERT INTO notes (note_id, namespace, head_version_id, author_agent_id, created_at)
+             VALUES (?1, 'ark', ?2, ?3, ?4)",
+            rusqlite::params![note_id, version_id, db::DEFAULT_AGENT_ID, now],
+        ).unwrap();
+
+        conn.execute(
+            "INSERT INTO note_versions (version_id, note_id, author_agent_id, content_hash, fm_hash, md_hash, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            rusqlite::params![version_id, note_id, db::DEFAULT_AGENT_ID, "ch", "fh", "mh", now],
+        ).unwrap();
+
+        conn.execute(
+            "INSERT INTO current_notes (note_id, namespace, head_version_id, author_agent_id, title, domain, kind, status, activation_score, updated_at)
+             VALUES (?1, 'ark', ?2, ?3, ?4, ?5, ?6, 'active', ?7, ?8)",
+            rusqlite::params![note_id, version_id, db::DEFAULT_AGENT_ID, title, domain, kind, activation_score, updated_at],
+        ).unwrap();
+
+        conn.execute(
+            "INSERT INTO note_text (note_id, title, body, spine, aliases, keywords)
+             VALUES (?1, ?2, ?3, '', '', '')",
+            rusqlite::params![note_id, title, body],
+        ).unwrap();
+    }
+
+    #[test]
+    fn test_since_filter_excludes_old_notes() {
+        let conn = setup_db();
+        let config = default_config();
+
+        let now = chrono::Utc::now();
+        let recent = (now - chrono::Duration::hours(6)).to_rfc3339();
+        let old = (now - chrono::Duration::days(30)).to_rfc3339();
+        let since_cutoff = (now - chrono::Duration::days(1)).to_rfc3339();
+
+        insert_note_at(&conn, "tf-recent", "Recent BTC analysis", "finance", "report",
+            "Bitcoin price analysis from today.", 0.80, &recent);
+        insert_note_at(&conn, "tf-old", "Old BTC report", "finance", "report",
+            "Bitcoin mining overview from last month.", 0.80, &old);
+
+        // Without since filter: both notes should appear
+        let filters_no_time = SearchFilters {
+            domain: Some("finance"),
+            kind: None,
+            intent: None,
+            tags: &[],
+            since: None,
+            before: None,
+            limit: 10,
+        };
+        let hits = search(&conn, "Bitcoin", &filters_no_time, &config, None, SearchMode::Bm25Only).unwrap();
+        assert_eq!(hits.len(), 2, "Without temporal filter, both notes should appear");
+
+        // With since filter: only recent note should appear
+        let filters_since = SearchFilters {
+            domain: Some("finance"),
+            kind: None,
+            intent: None,
+            tags: &[],
+            since: Some(&since_cutoff),
+            before: None,
+            limit: 10,
+        };
+        let hits = search(&conn, "Bitcoin", &filters_since, &config, None, SearchMode::Bm25Only).unwrap();
+        assert_eq!(hits.len(), 1, "Since filter should exclude old note");
+        assert_eq!(hits[0].note_id, "tf-recent");
+    }
+
+    // ================================================================
+    // Test 17: Temporal before filter excludes recent notes
+    // ================================================================
+
+    #[test]
+    fn test_before_filter_excludes_recent_notes() {
+        let conn = setup_db();
+        let config = default_config();
+
+        let now = chrono::Utc::now();
+        let recent = (now - chrono::Duration::hours(6)).to_rfc3339();
+        let old = (now - chrono::Duration::days(30)).to_rfc3339();
+        let before_cutoff = (now - chrono::Duration::days(7)).to_rfc3339();
+
+        insert_note_at(&conn, "bf-recent", "Recent FOMC note", "finance", "report",
+            "Federal reserve meeting notes from today.", 0.80, &recent);
+        insert_note_at(&conn, "bf-old", "Old FOMC note", "finance", "report",
+            "Federal reserve meeting notes from last month.", 0.80, &old);
+
+        // With before filter: only old note should appear
+        let filters_before = SearchFilters {
+            domain: Some("finance"),
+            kind: None,
+            intent: None,
+            tags: &[],
+            since: None,
+            before: Some(&before_cutoff),
+            limit: 10,
+        };
+        let hits = search(&conn, "Federal reserve", &filters_before, &config, None, SearchMode::Bm25Only).unwrap();
+        assert_eq!(hits.len(), 1, "Before filter should exclude recent note");
+        assert_eq!(hits[0].note_id, "bf-old");
+    }
+
+    // ================================================================
+    // Test 18: Combined since + before creates a date range
+    // ================================================================
+
+    #[test]
+    fn test_since_and_before_combined_range() {
+        let conn = setup_db();
+        let config = default_config();
+
+        let now = chrono::Utc::now();
+        let very_recent = (now - chrono::Duration::hours(1)).to_rfc3339();
+        let mid_range = (now - chrono::Duration::days(5)).to_rfc3339();
+        let very_old = (now - chrono::Duration::days(60)).to_rfc3339();
+
+        let since_cutoff = (now - chrono::Duration::days(14)).to_rfc3339();
+        let before_cutoff = (now - chrono::Duration::days(2)).to_rfc3339();
+
+        insert_note_at(&conn, "r-new", "New market data", "finance", "report",
+            "Latest market data analysis.", 0.80, &very_recent);
+        insert_note_at(&conn, "r-mid", "Mid-range market data", "finance", "report",
+            "Market data from last week.", 0.80, &mid_range);
+        insert_note_at(&conn, "r-old", "Old market data", "finance", "report",
+            "Ancient market data analysis.", 0.80, &very_old);
+
+        // Range: 14 days ago to 2 days ago — should only match mid-range
+        let filters = SearchFilters {
+            domain: Some("finance"),
+            kind: None,
+            intent: None,
+            tags: &[],
+            since: Some(&since_cutoff),
+            before: Some(&before_cutoff),
+            limit: 10,
+        };
+        let hits = search(&conn, "market data", &filters, &config, None, SearchMode::Bm25Only).unwrap();
+        assert_eq!(hits.len(), 1, "Date range should only include mid-range note");
+        assert_eq!(hits[0].note_id, "r-mid");
     }
 }

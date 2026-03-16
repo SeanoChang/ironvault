@@ -114,6 +114,14 @@ pub enum Commands {
         /// Requires embeddings (nark embed init + build).
         #[arg(long, conflicts_with = "bm25")]
         semantic: bool,
+
+        /// Filter to notes updated since (e.g. "1d", "7d", "24h", "1w", "1mo")
+        #[arg(long)]
+        since: Option<String>,
+
+        /// Filter to notes updated before (e.g. "3d", "1w", "1mo")
+        #[arg(long)]
+        before: Option<String>,
     },
 
     /// Browse the knowledge tree: domain → intent → kind → notes
@@ -140,6 +148,14 @@ pub enum Commands {
         /// Number of notes to return
         #[arg(long, default_value = "3")]
         limit: usize,
+
+        /// Filter to notes updated since (e.g. "1d", "7d", "24h", "1w", "1mo")
+        #[arg(long)]
+        since: Option<String>,
+
+        /// Filter to notes updated before (e.g. "3d", "1w", "1mo")
+        #[arg(long)]
+        before: Option<String>,
     },
 
     /// Delete notes from the vault
