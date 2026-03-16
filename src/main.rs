@@ -12,6 +12,7 @@ mod vault;
 use crate::cli::Commands::{
     Init,
     Write,
+    Edit,
     Peek,
     Read,
     Search,
@@ -22,6 +23,9 @@ use crate::cli::Commands::{
     Tag,
     Link,
     Links,
+    History,
+    Diff,
+    Rollback,
     Stats,
     Reset,
     Update
@@ -41,6 +45,7 @@ fn main() -> Result<()> {
     match args.command {
         Init => run(&vault_dir),
         Write { paths, depth } => cli::write::run(&vault_dir, paths, depth),
+        Edit { id, batch, args } => cli::edit::run(&vault_dir, &id, batch, args),
         Peek { id } => cli::peek::run(&vault_dir, &id),
         Read { id } => cli::read::run(&vault_dir, &id),
         Search { query, domain, kind, intent, tag, limit, bm25, semantic, since, before } => cli::search::run(&vault_dir, query.as_deref().unwrap_or(""), domain.as_deref(), kind.as_deref(), intent.as_deref(), &tag, limit, bm25, semantic, since.as_deref(), before.as_deref()),
@@ -50,6 +55,9 @@ fn main() -> Result<()> {
         Tag { args, list, find } => cli::tag::run(&vault_dir, args, list, find),
         Link { sources, target, rel } => cli::link::run(&vault_dir, sources, &target, &rel),
         Links { id } => cli::links::run(&vault_dir, &id),
+        History { id } => cli::history::run(&vault_dir, &id),
+        Diff { id, from, to } => cli::diff::run(&vault_dir, &id, from.as_deref(), to.as_deref()),
+        Rollback { id, version_id } => cli::rollback::run(&vault_dir, &id, &version_id),
         Stats => cli::stats::run(&vault_dir),
         Embed { action } => match action {
             cli::EmbedAction::Init => cli::embed::run_init(&vault_dir),

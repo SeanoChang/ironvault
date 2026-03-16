@@ -2,7 +2,10 @@ use clap::{Parser, Subcommand};
 
 pub mod about;
 pub mod delete;
+pub mod diff;
+pub mod edit;
 pub mod embed;
+pub mod history;
 pub mod init;
 pub mod link;
 pub mod links;
@@ -10,6 +13,7 @@ pub mod ls;
 pub mod peek;
 pub mod read;
 pub mod reset;
+pub mod rollback;
 pub mod search;
 pub mod stats;
 pub mod tag;
@@ -56,6 +60,23 @@ pub enum Commands {
         /// Max directory recursion depth (unlimited if omitted)
         #[arg(long)]
         depth: Option<u64>,
+    },
+
+    /// Edit an existing note (replace, append, prepend, set)
+    ///
+    /// Creates a new MVCC version for each edit. Supports surgical find/replace,
+    /// body append/prepend, and full document replacement.
+    Edit {
+        /// Note ID (UUID)
+        id: String,
+
+        /// Run multiple operations as one atomic version
+        #[arg(long)]
+        batch: bool,
+
+        /// Edit operations and arguments
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
     },
 
     /// Show note metadata from the registry (cheap, no vault read)
@@ -219,6 +240,44 @@ pub enum Commands {
     Links {
         /// Note ID (UUID)
         id: String,
+    },
+
+    /// List version history for a note
+    ///
+    /// Walks the version chain from head to the original version via
+    /// prev_version_id links. Shows version_id, content_hash, and timestamps.
+    History {
+        /// Note ID (UUID)
+        id: String,
+    },
+
+    /// Compare two versions of a note (unified diff)
+    ///
+    /// Defaults to comparing the previous version against the current head.
+    /// Use --from and --to to compare arbitrary versions.
+    Diff {
+        /// Note ID (UUID)
+        id: String,
+
+        /// Version ID to diff from (default: prev of head)
+        #[arg(long)]
+        from: Option<String>,
+
+        /// Version ID to diff to (default: head)
+        #[arg(long)]
+        to: Option<String>,
+    },
+
+    /// Restore an old version as a new head version
+    ///
+    /// Creates a new version with the content of the specified old version.
+    /// Non-destructive — the old version chain is preserved.
+    Rollback {
+        /// Note ID (UUID)
+        id: String,
+
+        /// Version ID to restore
+        version_id: String,
     },
 
     /// Vault overview — note counts, distributions, recent activity

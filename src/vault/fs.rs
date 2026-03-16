@@ -72,6 +72,23 @@ impl Vault {
         return Err(anyhow::anyhow!("[Vault]: no frontmatter found!"))
     }
 
+    /// Split a full document into (fm_raw, body) where fm_raw includes the
+    /// trailing newline — ready for `format!("---\n{}---\n{}", fm, body)`
+    /// reconstruction.
+    pub fn split_doc(doc: &str) -> Result<(String, String)> {
+        if !doc.starts_with("---\n") {
+            anyhow::bail!("document does not start with frontmatter delimiter");
+        }
+        match doc[4..].find("\n---\n") {
+            Some(i) => {
+                let fm = &doc[4..4 + i + 1]; // include trailing newline
+                let body = &doc[4 + i + 5..];
+                Ok((fm.to_string(), body.to_string()))
+            }
+            None => anyhow::bail!("no closing frontmatter delimiter found"),
+        }
+    }
+
     fn store(&self, content: &str, folder_path: &str, file_type: &str) -> Result<String> {
         let hashed_content = blake3::hash(content.as_bytes());
         let hashed_content_hex = hashed_content.to_hex().to_string();
